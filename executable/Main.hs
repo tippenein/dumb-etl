@@ -16,8 +16,6 @@ modifiers :: Modifiers
 modifiers = defaultModifiers { fieldNameModifier = drop 1 }
 
 
--- dumb-etl --input FILE/DIR --output FILE --search TERM --matcher
-
 main :: IO ()
 main = do
     args <- getRecord "ETL Shtuff"

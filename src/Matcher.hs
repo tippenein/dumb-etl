@@ -7,6 +7,7 @@ import qualified Data.ByteString.Lazy as LazyBS
 import qualified Data.ByteString.Lazy.Char8 as Char8
 import qualified Data.ByteString.Search as Search
 import qualified Text.Regex.TDFA.ByteString as Regex
+import Data.Text (Text)
 import Text.Regex.TDFA.Common
 import Data.Maybe (isJust)
 import Data.Typeable (Typeable)
@@ -42,21 +43,21 @@ regexPattern bs = case Regex.compile comp ex bs of
                       }
     ex = ExecOption { captureGroups = False}
 
-regexMatch :: LazyBS.ByteString -> Bool
-regexMatch bs =
+regexMatch :: BS.ByteString -> LazyBS.ByteString -> Bool
+regexMatch phrase bs =
     case regexMatch' bs of
       Left _ -> False
       Right m -> isJust m
   where
     regexMatch' =
-          Regex.execute (regexPattern "knicks")
+          Regex.execute (regexPattern phrase)
         . LazyBS.toStrict
 
-indiceMatch :: LazyBS.ByteString -> Bool
-indiceMatch =
+indiceMatch :: BS.ByteString-> LazyBS.ByteString -> Bool
+indiceMatch phrase =
       not
     . null
-    . Search.indices "knicks"
+    . Search.indices phrase
     . BS.map lower
     . LazyBS.toStrict
 

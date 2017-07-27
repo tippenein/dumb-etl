@@ -19,7 +19,7 @@ import qualified Data.Text.Encoding as T
 import qualified ListT
 import qualified STMContainers.Map as Map
 import qualified Data.List as List
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromJust)
 import GHC.Generics (Generic)
 import Data.Ord (comparing)
 
@@ -27,6 +27,7 @@ import Data.Ord (comparing)
 data Args = Args { _input :: FilePath
                  , _output :: Maybe FilePath
                  , _search :: String
+                 , _pattern :: String
                  , _matcher :: Maybe Matcher
                  } deriving (Generic, Show)
 
@@ -34,8 +35,8 @@ data Args = Args { _input :: FilePath
 intToBs :: Integer -> BS.ByteString
 intToBs = T.encodeUtf8 . T.pack . show
 
-glue :: BS.ByteString -> (Char8.ByteString, Integer) -> BS.ByteString
-glue r (k, v) =
+outputBuilder :: BS.ByteString -> (Char8.ByteString, Integer) -> BS.ByteString
+outputBuilder r (k, v) =
     (BS.concat
             [ r
             , Char8.toStrict k
@@ -44,13 +45,10 @@ glue r (k, v) =
             , "\n"
             ])
 
-getMatcher :: Matcher -> (LazyBS.ByteString -> Bool)
-getMatcher Indice = indiceMatch
-getMatcher Pattern = regexMatch
-
 runWith :: Args -> IO ()
 runWith Args{..} = do
-    files <- globDir1 (compile _search) _input
+    print $ "searching: " ++ _search
+    files <- globDir1 (compile _pattern) _input
 
     m <- Map.newIO
 
@@ -60,16 +58,25 @@ runWith Args{..} = do
                 Nothing -> Map.insert 1 key m
                 Just n  -> n' `seq` Map.insert n' key m  where n' = n + 1
 
-    let matcher = getMatcher $ fromMaybe Indice _matcher
+    let matcher = fromMaybe Indice _matcher
+    print $ "running: " ++ show (fromJust matcher) ++ " matcher"
+
     let processFile file = Async.Concurrently (do
             bytes <- LazyBS.readFile file
-            traverse_ increment (parseFile matcher bytes) )
+            traverse_ increment (parseFile (getMatcher matcher) bytes) )
 
     Async.runConcurrently (traverse_ processFile files)
 
     let sorted = STM.atomically (
-          List.foldl' glue "" <$>
+          List.foldl' outputBuilder "" <$>
           List.sortBy (flip $ comparing snd) <$>
           (ListT.toReverseList (Map.stream m))
           )
     BS.writeFile (fromMaybe "results.txt" _output) =<< sorted
+
+    where
+      getMatcher :: Matcher -> (LazyBS.ByteString -> Bool)
+      getMatcher Indice = indiceMatch searchBS
+      getMatcher Pattern = regexMatch searchBS
+
+      searchBS = T.encodeUtf8 $ T.pack _search
