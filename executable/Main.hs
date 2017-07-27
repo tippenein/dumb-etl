@@ -8,7 +8,12 @@ import Matcher
 import Options.Generic
 
 instance ParseField Matcher.Matcher
-instance ParseRecord MapReduce.Args
+
+instance ParseRecord MapReduce.Args where
+  parseRecord = parseRecordWithModifiers modifiers
+
+modifiers :: Modifiers
+modifiers = defaultModifiers { fieldNameModifier = drop 1 }
 
 
 -- dumb-etl --input FILE/DIR --output FILE --search TERM --matcher
