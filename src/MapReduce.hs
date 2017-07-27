@@ -23,7 +23,6 @@ import Data.Maybe (fromMaybe, fromJust)
 import GHC.Generics (Generic)
 import Data.Ord (comparing)
 
-
 data Args = Args { _input :: FilePath
                  , _output :: Maybe FilePath
                  , _search :: String
@@ -45,6 +44,10 @@ outputBuilder r (k, v) =
             , "\n"
             ])
 
+writeOut :: Maybe FilePath -> BS.ByteString -> IO ()
+writeOut (Just f) = BS.writeFile f
+writeOut Nothing = BS.putStr
+
 runWith :: Args -> IO ()
 runWith Args{..} = do
     print $ "searching: " ++ _search
@@ -59,7 +62,7 @@ runWith Args{..} = do
                 Just n  -> n' `seq` Map.insert n' key m  where n' = n + 1
 
     let matcher = fromMaybe Indice _matcher
-    print $ "running: " ++ show (fromJust matcher) ++ " matcher"
+    print $ "running: " ++ show matcher ++ " matcher"
 
     let processFile file = Async.Concurrently (do
             bytes <- LazyBS.readFile file
@@ -72,7 +75,7 @@ runWith Args{..} = do
           List.sortBy (flip $ comparing snd) <$>
           (ListT.toReverseList (Map.stream m))
           )
-    BS.writeFile (fromMaybe "results.txt" _output) =<< sorted
+    writeOut _output =<< sorted
 
     where
       getMatcher :: Matcher -> (LazyBS.ByteString -> Bool)

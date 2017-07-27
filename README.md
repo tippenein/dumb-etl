@@ -14,14 +14,14 @@ Available options:
 ```
 
 
-For example, running a simple (but fast) indice search on `tweets/tweets_*` and dumping the results to the default output (`results.txt`)
+For example, running a simple (but fast) indice search on `tweets/tweets_*` and dumping the results to the default output (stdout)
 ```
 stack exec dumb-etl -- --input tweets/ \
                        --search 'knicks' \
                        --pattern 'tweets_*' \
 ```
 
-Using a regex pattern match to dump more detailed results to a different output file:
+Using a regex pattern match to dump more detailed results to an  output file:
 ```
 stack exec dumb-etl -- --input tweets/ \
                        --matcher Pattern \
